@@ -8,6 +8,7 @@ import (
 	"github.com/prairir/hotel/pkg/docker"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/gliderlabs/ssh"
 )
 
@@ -38,7 +39,19 @@ func Handler(dock *docker.Dock, log logr.Logger) func(ssh.Session) {
 			Image:        name,
 		}
 
-		id, err := dock.RunContainer(name, config)
+		mountPoint := fmt.Sprintf("/home/%s/", sess.User())
+
+		hostConfig := container.HostConfig{
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: mountPoint,
+					Target: mountPoint,
+				},
+			},
+		}
+
+		id, err := dock.RunContainer(name, config, hostConfig)
 		if err != nil {
 			log.Error(fmt.Errorf("handler.Handler: %w", err), "run container")
 			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING\n", err).Error())

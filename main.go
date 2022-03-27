@@ -28,7 +28,8 @@ func main() {
 	port := ":2222"
 
 	zlog.Info("starting ssh server", "port", port)
-	ssh.ListenAndServe(port,
+	err = ssh.ListenAndServe(port,
 		handler.Handler(dock, zlog),
 		ssh.PasswordAuth(password.Handler(zlog)))
+	zlog.Error(err, "ssh.ListenAndServer")
 }

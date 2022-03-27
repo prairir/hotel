@@ -115,7 +115,7 @@ func (d Dock) getIdsByName(name string) ([]string, error) {
 // and runs that container
 //
 // supresses container removing errors
-func (d Dock) RunContainer(name string, config container.Config) (string, error) {
+func (d Dock) RunContainer(name string, config container.Config, hostConfig container.HostConfig) (string, error) {
 	config.Image = name
 
 	ids, err := d.getIdsByName(name)
@@ -136,7 +136,7 @@ func (d Dock) RunContainer(name string, config container.Config) (string, error)
 		}
 	}
 
-	resp, err := d.client.ContainerCreate(context.TODO(), &config, nil, nil, nil, name)
+	resp, err := d.client.ContainerCreate(context.TODO(), &config, &hostConfig, nil, nil, name)
 	if err != nil {
 		return "", fmt.Errorf("dock.RunContainer: create container: %w", err)
 	}
