@@ -6,6 +6,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/prairir/hotel/pkg/docker"
 	"github.com/prairir/hotel/pkg/handler"
+	"github.com/prairir/hotel/pkg/password"
 
 	"github.com/go-logr/zerologr"
 	"github.com/rs/zerolog"
@@ -27,9 +28,7 @@ func main() {
 	port := ":2222"
 
 	zlog.Info("starting ssh server", "port", port)
-	ssh.ListenAndServe(port, handler.Handler(dock, zlog))
-	ssh.ListenAndServe(port, handler.Handler(dock, zlog), ssh.PasswordAuth(func(ctx ssh.Context, password string) bool {
-		ctx.SetValue("password", password)
-		return true
-	}))
+	ssh.ListenAndServe(port,
+		handler.Handler(dock, zlog),
+		ssh.PasswordAuth(password.Handler(zlog)))
 }

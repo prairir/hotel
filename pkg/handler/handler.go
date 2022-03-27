@@ -20,10 +20,10 @@ func Handler(dock *docker.Dock, log logr.Logger) func(ssh.Session) {
 
 		name := sess.User()
 
-		err := dock.BuildContainer(name, sess.User(), pass, ".")
+		err := dock.BuildContainer(name, sess.User(), pass.(string), ".")
 		if err != nil {
 			log.Error(fmt.Errorf("handler.Handler: %w", err), "build container")
-			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING", err).Error())
+			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING\n", err).Error())
 			sess.Exit(1)
 		}
 
@@ -41,14 +41,14 @@ func Handler(dock *docker.Dock, log logr.Logger) func(ssh.Session) {
 		id, err := dock.RunContainer(name, config)
 		if err != nil {
 			log.Error(fmt.Errorf("handler.Handler: %w", err), "run container")
-			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING", err).Error())
+			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING\n", err).Error())
 			sess.Exit(1)
 		}
 
 		waiter, err := dock.AttachContainer(id, sess, sess)
 		if err != nil {
 			log.Error(fmt.Errorf("handler.Handler: %w", err), "attach container")
-			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING", err).Error())
+			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING\n", err).Error())
 			sess.Exit(1)
 		}
 		defer waiter.Close()
@@ -56,7 +56,7 @@ func Handler(dock *docker.Dock, log logr.Logger) func(ssh.Session) {
 		err = dock.WaitContainer(id)
 		if err != nil {
 			log.Error(fmt.Errorf("handler.Handler: %w", err), "wait container")
-			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING", err).Error())
+			io.WriteString(sess, fmt.Errorf("ERROR handler.Handler: %w\n\nEXITING\n", err).Error())
 			sess.Exit(1)
 		}
 
