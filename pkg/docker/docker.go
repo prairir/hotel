@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -24,12 +23,12 @@ type ErrorDetail struct {
 	Message string `json:"message"`
 }
 
-type dock struct {
+type Dock struct {
 	client *client.Client
 	log    logr.Logger
 }
 
-func New(log logr.Logger) (*dock, error) {
+func New(log logr.Logger) (*Dock, error) {
 	// TODO: change this to take  options
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -38,7 +37,7 @@ func New(log logr.Logger) (*dock, error) {
 
 	log = log.WithName("docker")
 
-	dock := dock{
+	dock := Dock{
 		client: cli,
 		log:    log,
 	}
@@ -47,7 +46,7 @@ func New(log logr.Logger) (*dock, error) {
 }
 
 // BuildContainer: builds container with name tag of `name`, username of `user`, and password of `password`
-func (d dock) BuildContainer(name, user, password, contextDir string) error {
+func (d Dock) BuildContainer(name, user, password, contextDir string) error {
 	options := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		NoCache:    false,
@@ -94,7 +93,7 @@ func makeBuildContext(contextDir string) (*io.ReadCloser, error) {
 }
 
 // gets container ids by image name `name`
-func (d dock) getIdsByName(name string) ([]string, error) {
+func (d Dock) getIdsByName(name string) ([]string, error) {
 	conts, err := d.client.ContainerList(context.TODO(), types.ContainerListOptions{
 		All: true,
 	})
@@ -112,11 +111,11 @@ func (d dock) getIdsByName(name string) ([]string, error) {
 	return ids, nil
 }
 
-// dock.RunContainer: creates container with name `name` and config `config`
+// dock.RunContainer: removes containers with image name `name`,creates container with name `name` and config `config`
 // and runs that container
 //
-// supresses error of d.client.ContainerCreate as it will rerun containers
-func (d dock) RunContainer(name string, config container.Config) (string, error) {
+// supresses container removing errors
+func (d Dock) RunContainer(name string, config container.Config) (string, error) {
 	config.Image = name
 
 	ids, err := d.getIdsByName(name)
@@ -150,7 +149,7 @@ func (d dock) RunContainer(name string, config container.Config) (string, error)
 	return resp.ID, nil
 }
 
-func (d dock) AttachContainer(id string, attachIn io.Reader, attachOut io.Writer) (*types.HijackedResponse, error) {
+func (d Dock) AttachContainer(id string, attachIn io.Reader, attachOut io.Writer) (*types.HijackedResponse, error) {
 	waiter, err := d.client.ContainerAttach(context.TODO(), id, types.ContainerAttachOptions{
 		Stream: true,
 		Stderr: true,
@@ -168,22 +167,18 @@ func (d dock) AttachContainer(id string, attachIn io.Reader, attachOut io.Writer
 	return &waiter, nil
 }
 
-func (d dock) WaitContainer(id string) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 10000*time.Second)
-	respC, errC := d.client.ContainerWait(ctx, id, container.WaitConditionNextExit)
+func (d Dock) WaitContainer(id string) error {
+	respC, errC := d.client.ContainerWait(context.TODO(), id, container.WaitConditionNextExit)
 	select {
 	case err := <-errC:
 		if err != nil {
-			cancel()
 			return fmt.Errorf("dock.WaitContainer: %w", err)
 		}
 	case resp := <-respC:
 		if resp.Error != nil {
-			cancel()
 			return fmt.Errorf("dock.WaitContainer: %s", resp.Error.Message)
 		}
 	}
 
-	cancel()
 	return nil
 }
