@@ -23,9 +23,30 @@ func main() {
 		panic(err)
 	}
 
-	ssh.Handle(handler.Handler(dock, zlog))
+	port := os.Getenv("HOTEL_PORT")
+	if port == "" {
+		zlog.Info("`HOTEL_PORT` is empty, defaulting to 2222")
+		port = "2222"
+	}
 
-	port := ":2222"
+	port = ":" + port
+
+	hostKeyPath := os.Getenv("HOTEL_HOST_KEY_PATH")
+	if hostKeyPath == "" {
+		zlog.Info("`HOTEL_HOST_KEY_PATH` is empty, generating Host Key")
+
+		zlog.Info("starting ssh server", "port", port)
+		err = ssh.ListenAndServe(port,
+			handler.Handler(dock, zlog),
+			ssh.PasswordAuth(password.Handler(zlog)))
+	} else {
+		zlog.Info("starting ssh server", "port", port)
+		err = ssh.ListenAndServe(port,
+			handler.Handler(dock, zlog),
+			ssh.PasswordAuth(password.Handler(zlog)),
+			ssh.HostKeyFile(hostKeyPath),
+		)
+	}
 
 	zlog.Info("starting ssh server", "port", port)
 	err = ssh.ListenAndServe(port,
